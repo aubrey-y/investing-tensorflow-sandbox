@@ -130,18 +130,20 @@ def main():
     features = df[["adjusted_close"]]
     features.index = df["date"]
 
-    features.plot(subplots=True)
-
     dataset = features.values
     training_term_index = int(len(features) * training_coef)
     data_mean = dataset[:training_term_index].mean(axis=0)
     data_std = dataset[:training_term_index].std(axis=0)
 
-    dataset = (dataset - data_mean) / data_std
-
     window_steps_modified = int(window * step_size)
 
-    history_size = int(len(features) - 1.1*training_term_index - 1)
+    features.head(training_term_index).plot(subplots=True)
+
+    features.head(training_term_index + window_steps_modified).plot(subplots=True)
+
+    dataset = (dataset - data_mean) / data_std
+
+    history_size = int(training_term_index - 1)
 
     x_train_multi, y_train_multi = multivariate_data(dataset=dataset,
                                                      target=dataset[:, 0],
@@ -168,21 +170,22 @@ def main():
     for x, y in train_data_multi.take(1):
         multi_step_plot(x[0], y[0], numpy.array([0]), step_size)
 
-    multi_step_model = tensorflow.keras.models.Sequential()
-    multi_step_model.add(tensorflow.keras.layers.LSTM(32, return_sequences=True, input_shape=x_train_multi.shape[-2:]))
-    multi_step_model.add(tensorflow.keras.layers.LSTM(16, activation='relu'))
-    multi_step_model.add(tensorflow.keras.layers.Dense(72))
-
-    multi_step_model.compile(optimizer=tensorflow.keras.optimizers.RMSprop(clipvalue=1.0), loss='mae')
-
-    multi_step_history = multi_step_model.fit(train_data_multi, epochs=epochs, steps_per_epoch=200, validation_data=val_data_multi, validation_steps=50)
-
-    multi_step_model.save(f"{symbol}_model.h5")
-
-    plot_train_history(multi_step_history, 'Multi-Step Training and validation loss')
-
-    for x, y in val_data_multi.take(3):
-        multi_step_plot(x[0], y[0], multi_step_model.predict(x)[0], step_size)
+    # The actual training of the model below is breaking due to dimension errors. Will revisit tbd.
+    # multi_step_model = tensorflow.keras.models.Sequential()
+    # multi_step_model.add(tensorflow.keras.layers.LSTM(32, return_sequences=True, input_shape=x_train_multi.shape[-2:]))
+    # multi_step_model.add(tensorflow.keras.layers.LSTM(16, activation='relu'))
+    # multi_step_model.add(tensorflow.keras.layers.Dense(72))
+    #
+    # multi_step_model.compile(optimizer=tensorflow.keras.optimizers.RMSprop(clipvalue=1.0), loss='mae')
+    #
+    # multi_step_history = multi_step_model.fit(train_data_multi, epochs=epochs, steps_per_epoch=200, validation_data=val_data_multi, validation_steps=50)
+    #
+    # multi_step_model.save(f"{symbol}_model.h5")
+    #
+    # plot_train_history(multi_step_history, 'Multi-Step Training and validation loss')
+    #
+    # for x, y in val_data_multi.take(3):
+    #     multi_step_plot(x[0], y[0], multi_step_model.predict(x)[0], step_size)
 
 
 main()
